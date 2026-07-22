@@ -66,26 +66,31 @@ class CloudCompilerHandler(BaseHTTPRequestHandler):
             print(f"Cloud compile triggered for {quarter} FY {fy}...")
             
             try:
-                # 1. Fetch data
+                print("Step 1: Fetching data...")
                 data = fetch_all_data(fy, quarter)
+                print(f"Step 1 Complete! Data worksheets: {len(data)}")
                 
-                # 2. Open template
+                print("Step 2: Finding template file...")
                 template_path = find_template_file()
+                print(f"Step 2 Complete! Opening doc: {template_path}")
                 doc = Document(template_path)
                 
-                # 3. Populate
+                print("Step 3: Populating tables...")
                 populate_all_tables(doc, data)
+                print("Step 3 Complete!")
                 
-                # 4. Appreciation note
+                print("Step 4: Generating appreciation note...")
                 note_paragraphs = generate_appreciation_note(data, fy, quarter)
                 if note_paragraphs:
                     insert_appreciation_note(doc, note_paragraphs)
+                print("Step 4 Complete!")
                 
-                # 5. Save report to memory buffer
+                print("Step 5: Saving to memory buffer...")
                 file_stream = io.BytesIO()
                 doc.save(file_stream)
                 file_stream.seek(0)
                 file_bytes = file_stream.read()
+                print(f"Step 5 Complete! Buffer size: {len(file_bytes)} bytes")
                 
                 # 6. Send file back to browser as attachment download
                 self.send_response(200)
