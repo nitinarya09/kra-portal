@@ -184,11 +184,15 @@ def fetch_all_data(fy, quarter, creds_path=None, dry_run=False):
     import requests
     try:
         payload = json.dumps({"action": "getAllSectionData", "payload": {"fy": fy, "quarter": quarter}})
-        res = requests.post(APPS_SCRIPT_URL, data=payload, headers={"Content-Type": "text/plain"}, timeout=1.5)
-        if res.status_code == 200:
-            res_json = res.json()
-            if res_json.get("status") == "SUCCESS" and isinstance(res_json.get("data"), dict):
-                return res_json["data"]
+        r = requests.post(APPS_SCRIPT_URL, data=payload, headers={"Content-Type": "text/plain"}, timeout=3, allow_redirects=False)
+        if r.status_code == 302:
+            redirect_url = r.headers.get("Location")
+            if redirect_url:
+                r2 = requests.get(redirect_url, timeout=5)
+                if r2.status_code == 200:
+                    res_json = r2.json()
+                    if res_json.get("status") == "SUCCESS" and isinstance(res_json.get("data"), dict):
+                        return res_json["data"]
     except Exception as e:
         print(f"Fetch notice: {e}")
 
