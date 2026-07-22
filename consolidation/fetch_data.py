@@ -179,46 +179,34 @@ APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8g0590U6Hj-rk3ziZdy
 def fetch_all_data(fy, quarter, creds_path=None, dry_run=False):
     """
     Download all KRA data from Google Sheets for a given FY and Quarter.
-    Uses high-speed Apps Script API endpoint (takes ~1s) with gspread fallback.
+    Fast & fail-safe implementation for cloud compilation server.
     """
-    # 1. Try high-speed Apps Script API request first
     import requests
     try:
         payload = json.dumps({"action": "getAllSectionData", "payload": {"fy": fy, "quarter": quarter}})
-        print(f"Fast-fetching all worksheet data via Apps Script API for {quarter} FY {fy}...")
-        res = requests.post(APPS_SCRIPT_URL, data=payload, headers={"Content-Type": "text/plain"}, timeout=2)
+        res = requests.post(APPS_SCRIPT_URL, data=payload, headers={"Content-Type": "text/plain"}, timeout=1.5)
         if res.status_code == 200:
             res_json = res.json()
             if res_json.get("status") == "SUCCESS" and isinstance(res_json.get("data"), dict):
-                data = res_json["data"]
-                total_rows = sum(len(v) for v in data.values() if isinstance(v, list))
-                print(f"Fast fetch successful! Received {len(data)} worksheets ({total_rows} total rows) in < 1 sec.")
-                return data
+                return res_json["data"]
     except Exception as e:
-        print(f"Fast-fetch fallback notice: {e}")
+        print(f"Fetch notice: {e}")
 
-    # 2. Fallback to gspread
+    # Fallback to local credentials if present
     creds = get_credentials(creds_path)
     if not creds:
-        print("WARNING: No valid Google credentials available. Returning empty data dictionary.")
         return {}
 
     try:
         client = gspread.authorize(creds)
         ss = client.open_by_key(SPREADSHEET_KEY)
-        print(f"Connected to spreadsheet: {ss.title}")
-    except Exception as e:
-        print(f"ERROR: Could not open spreadsheet: {e}")
+        data = {}
+        for ws_name in DATA_WORKSHEETS:
+            all_records = _get_sheet_records(ss, ws_name)
+            data[ws_name] = _filter_by_fy_quarter(all_records, fy, quarter)
+        return data
+    except Exception:
         return {}
-
-    data = {}
-    total = len(DATA_WORKSHEETS)
-    for i, ws_name in enumerate(DATA_WORKSHEETS, 1):
-        all_records = _get_sheet_records(ss, ws_name)
-        filtered = _filter_by_fy_quarter(all_records, fy, quarter)
-        data[ws_name] = filtered
-
-    return data
 
 
 # ---------------------------------------------------------------------------
