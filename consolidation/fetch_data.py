@@ -186,7 +186,7 @@ def fetch_all_data(fy, quarter, creds_path=None, dry_run=False):
     try:
         payload = json.dumps({"action": "getAllSectionData", "payload": {"fy": fy, "quarter": quarter}})
         print(f"Fast-fetching all worksheet data via Apps Script API for {quarter} FY {fy}...")
-        res = requests.post(APPS_SCRIPT_URL, data=payload, headers={"Content-Type": "text/plain"}, timeout=10)
+        res = requests.post(APPS_SCRIPT_URL, data=payload, headers={"Content-Type": "text/plain"}, timeout=2)
         if res.status_code == 200:
             res_json = res.json()
             if res_json.get("status") == "SUCCESS" and isinstance(res_json.get("data"), dict):
@@ -195,7 +195,7 @@ def fetch_all_data(fy, quarter, creds_path=None, dry_run=False):
                 print(f"Fast fetch successful! Received {len(data)} worksheets ({total_rows} total rows) in < 1 sec.")
                 return data
     except Exception as e:
-        print(f"Apps Script fast-fetch notice: {e}. Falling back to gspread...")
+        print(f"Fast-fetch fallback notice: {e}")
 
     # 2. Fallback to gspread
     creds = get_credentials(creds_path)
