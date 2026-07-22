@@ -48,6 +48,11 @@ class CloudCompilerHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
 
+    def do_HEAD(self):
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+
     def do_GET(self):
         parsed_url = urlparse(self.path)
         
