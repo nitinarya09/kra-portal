@@ -173,10 +173,31 @@ def _filter_by_fy_quarter(records, fy, quarter):
     return filtered
 
 
+APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8g0590U6Hj-rk3ziZdy2r6zF-JR82Hu85TMzGnnJzotqLziGifHoeotXrlsmGRXkW/exec"
+
+
 def fetch_all_data(fy, quarter, creds_path=None, dry_run=False):
     """
     Download all KRA data from Google Sheets for a given FY and Quarter.
+    Uses high-speed Apps Script API endpoint (takes ~1s) with gspread fallback.
     """
+    # 1. Try high-speed Apps Script API request first
+    import requests
+    try:
+        payload = json.dumps({"action": "getAllSectionData", "payload": {"fy": fy, "quarter": quarter}})
+        print(f"Fast-fetching all worksheet data via Apps Script API for {quarter} FY {fy}...")
+        res = requests.post(APPS_SCRIPT_URL, data=payload, headers={"Content-Type": "text/plain"}, timeout=10)
+        if res.status_code == 200:
+            res_json = res.json()
+            if res_json.get("status") == "SUCCESS" and isinstance(res_json.get("data"), dict):
+                data = res_json["data"]
+                total_rows = sum(len(v) for v in data.values() if isinstance(v, list))
+                print(f"Fast fetch successful! Received {len(data)} worksheets ({total_rows} total rows) in < 1 sec.")
+                return data
+    except Exception as e:
+        print(f"Apps Script fast-fetch notice: {e}. Falling back to gspread...")
+
+    # 2. Fallback to gspread
     creds = get_credentials(creds_path)
     if not creds:
         print("WARNING: No valid Google credentials available. Returning empty data dictionary.")
@@ -190,25 +211,12 @@ def fetch_all_data(fy, quarter, creds_path=None, dry_run=False):
         print(f"ERROR: Could not open spreadsheet: {e}")
         return {}
 
-    if dry_run:
-        print(f"DRY RUN: Connection successful. Spreadsheet has {len(ss.worksheets())} worksheets.")
-        ws_names = [ws.title for ws in ss.worksheets()]
-        print(f"Available worksheets: {', '.join(ws_names)}")
-        return {}
-
-    import time
     data = {}
     total = len(DATA_WORKSHEETS)
     for i, ws_name in enumerate(DATA_WORKSHEETS, 1):
-        print(f"  [{i:2d}/{total}] Downloading {ws_name}...", end=" ")
         all_records = _get_sheet_records(ss, ws_name)
         filtered = _filter_by_fy_quarter(all_records, fy, quarter)
         data[ws_name] = filtered
-        print(f"{len(filtered)} rows (of {len(all_records)} total)")
-
-    non_empty = sum(1 for v in data.values() if v)
-    total_rows = sum(len(v) for v in data.values())
-    print(f"\nFetch complete: {non_empty}/{total} worksheets have data, {total_rows} total rows for {quarter} FY {fy}")
 
     return data
 
