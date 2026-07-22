@@ -108,10 +108,13 @@ class CloudCompilerHandler(BaseHTTPRequestHandler):
                 import traceback
                 err_msg = f"Error during cloud compilation: {e}\n{traceback.format_exc()}"
                 print(err_msg)
+                err_bytes = json.dumps({"status": "failed", "message": str(e)}).encode('utf-8')
                 self.send_response(500)
                 self.send_header('Content-Type', 'application/json')
+                self.send_header('Content-Length', str(len(err_bytes)))
+                self.send_header('Connection', 'close')
                 self.end_headers()
-                self.wfile.write(json.dumps({"status": "failed", "message": str(e)}).encode())
+                self.wfile.write(err_bytes)
             return
 
         elif parsed_url.path == "/status" or parsed_url.path == "/" or parsed_url.path == "/health":
