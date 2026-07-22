@@ -193,6 +193,7 @@ def fetch_all_data(fy, quarter, creds_path=None, dry_run=False):
 
         try:
             client = gspread.authorize(creds)
+            client.http_client.timeout = 3.0  # Cap all Google API requests to 3.0s
             ss = client.open_by_key(SPREADSHEET_KEY)
             
             # 1-call batch fetch for all 38 worksheets
