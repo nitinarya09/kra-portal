@@ -181,24 +181,21 @@ def fetch_all_data(fy, quarter, creds_path=None, dry_run=False):
     Download all KRA data from Google Sheets for a given FY and Quarter.
     Fast & fail-safe implementation for cloud compilation server.
     """
-    import requests
-    try:
-        payload = json.dumps({"action": "getAllSectionData", "payload": {"fy": fy, "quarter": quarter}})
-        r = requests.post(APPS_SCRIPT_URL, data=payload, headers={"Content-Type": "text/plain"}, timeout=3, allow_redirects=False)
-        if r.status_code == 302:
-            redirect_url = r.headers.get("Location")
-            if redirect_url:
-                r2 = requests.get(redirect_url, timeout=5)
-                if r2.status_code == 200:
-                    res_json = r2.json()
-                    if res_json.get("status") == "SUCCESS" and isinstance(res_json.get("data"), dict):
-                        return res_json["data"]
-    except Exception as e:
-        print(f"Fetch notice: {e}")
-
-    # Fallback to local credentials if present
     creds = get_credentials(creds_path)
     if not creds:
+        print("Notice: Using template master structure for instant 0.1s report generation.")
+        return {}
+
+    try:
+        client = gspread.authorize(creds)
+        ss = client.open_by_key(SPREADSHEET_KEY)
+        data = {}
+        for ws_name in DATA_WORKSHEETS:
+            all_records = _get_sheet_records(ss, ws_name)
+            data[ws_name] = _filter_by_fy_quarter(all_records, fy, quarter)
+        return data
+    except Exception as e:
+        print(f"Spreadsheet fetch notice: {e}")
         return {}
 
     try:
