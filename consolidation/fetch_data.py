@@ -173,10 +173,11 @@ def _filter_by_fy_quarter(records, fy, quarter):
     return filtered
 
 
-APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8g0590U6Hj-rk3ziZdy2r6zF-JR82Hu85TMzGnnJzotqLziGifHoeotXrlsmGRXkW/exec"
-
-
+import socket
 import concurrent.futures
+
+# Enforce 3.0 second maximum OS socket timeout for all network requests
+socket.setdefaulttimeout(3.0)
 
 
 def fetch_all_data(fy, quarter, creds_path=None, dry_run=False):
