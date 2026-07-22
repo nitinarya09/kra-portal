@@ -21,10 +21,20 @@ from populate_template import populate_all_tables
 from appreciation_note import generate_appreciation_note, insert_appreciation_note
 
 PORT = int(os.environ.get("PORT", 5005))
-DEFAULT_TEMPLATE = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "Sectionwise Blank KRA Report for June 2026 end Quarter.docx"
-)
+
+def find_template_file():
+    candidates = [
+        os.path.join(os.path.dirname(__file__), "Sectionwise Blank KRA Report for June 2026 end Quarter.docx"),
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "Sectionwise Blank KRA Report for June 2026 end Quarter.docx"),
+        "Sectionwise Blank KRA Report for June 2026 end Quarter.docx",
+        os.path.join("consolidation", "Sectionwise Blank KRA Report for June 2026 end Quarter.docx")
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            print(f"Found template file at: {c}")
+            return os.path.abspath(c)
+    print(f"WARNING: Template file not found in candidates, trying fallback path...")
+    return candidates[0]
 
 
 class CloudCompilerHandler(BaseHTTPRequestHandler):
@@ -60,11 +70,7 @@ class CloudCompilerHandler(BaseHTTPRequestHandler):
                 data = fetch_all_data(fy, quarter)
                 
                 # 2. Open template
-                template_path = DEFAULT_TEMPLATE
-                if not os.path.exists(template_path):
-                    # Fallback for Render directory structure
-                    template_path = "Sectionwise Blank KRA Report for June 2026 end Quarter.docx"
-                    
+                template_path = find_template_file()
                 doc = Document(template_path)
                 
                 # 3. Populate
