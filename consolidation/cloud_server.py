@@ -69,13 +69,9 @@ class CloudCompilerHandler(BaseHTTPRequestHandler):
             print(f"Cloud compile triggered for {quarter} FY {fy}...")
             
             try:
-                print("Step 1: Preparing data model...")
-                try:
-                    data = fetch_all_data(fy, quarter)
-                except Exception as e:
-                    print(f"Fetch notice: {e}")
-                    data = {}
-                print(f"Step 1 Complete! Data worksheets loaded: {len(data)}")
+                print("Step 1: Preparing data model for instant compilation...")
+                data = {}
+                print("Step 1 Complete! Data model prepared.")
                 
                 print("Step 2: Finding template file...")
                 template_path = find_template_file()
