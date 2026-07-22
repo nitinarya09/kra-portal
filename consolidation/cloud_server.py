@@ -10,7 +10,7 @@ import sys
 import os
 import json
 import io
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from docx import Document
 
@@ -106,7 +106,7 @@ class CloudCompilerHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"status": "failed", "message": str(e)}).encode())
             return
 
-        elif parsed_url.path == "/status" or parsed_url.path == "/":
+        elif parsed_url.path == "/status" or parsed_url.path == "/" or parsed_url.path == "/health":
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
@@ -118,8 +118,8 @@ class CloudCompilerHandler(BaseHTTPRequestHandler):
 
 
 def run_server():
-    server = HTTPServer(('0.0.0.0', PORT), CloudCompilerHandler)
-    print(f"KRA Cloud Compiler Server running on port {PORT}...")
+    server = ThreadingHTTPServer(('0.0.0.0', PORT), CloudCompilerHandler)
+    print(f"KRA Threading Cloud Compiler Server running on port {PORT}...")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
